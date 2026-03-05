@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3d0hidayat — Web Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:  #00ff88;
+  --blue:   #00cfff;
+  --yellow: #ffe600;
+  --purple: #b86fff;
+  --red:    #ff4455;
+  --bg:     #080b10;
+  --card:   #0d1117;
+  --card2:  #161b22;
+  --border: #21262d;
+  --text:   #cdd9e5;
+  --muted:  #768390;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  font-family: 'Press Start 2P', monospace;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCANLINES ── */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.10) 3px,rgba(0,0,0,.10) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* ── STARS ── */
+#starfield {
+  position:fixed;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+}
+.s {
+  position:absolute;
+  background:#fff;
+  border-radius:0;
+  animation: twinkle var(--d,3s) var(--delay,0s) infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.9}}
+
+/* ── PARTICLES ── */
+.px-particle {
+  position:fixed;
+  pointer-events:none;
+  z-index:2;
+  animation: rise var(--d,8s) var(--delay,0s) linear infinite;
+  opacity:0;
+  image-rendering:pixelated;
+}
+@keyframes rise{
+  0%{transform:translateY(100vh) rotate(0deg);opacity:0}
+  10%{opacity:.8}
+  90%{opacity:.4}
+  100%{transform:translateY(-80px) rotate(720deg);opacity:0}
+}
+
+/* ── LAYOUT ── */
+.wrap {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── PIXEL BOX ── */
+.box {
+  background: var(--card2);
+  border: 2px solid var(--border);
+  margin-bottom: 14px;
+  position: relative;
+}
+.box::before {
+  content:'';
+  position:absolute;
+  top:-1px; left:6px; right:6px; height:1px;
+  background: var(--green);
+  opacity:.5;
+}
+.box-title {
+  font-size: 7px;
+  color: var(--yellow);
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 1px;
+}
+
+/* ── HEADER ── */
+.header {
+  text-align:center;
+  padding: 28px 0 18px;
+}
+.header-decor {
+  font-size: 8px;
+  color: #21262d;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.header-name {
+  font-size: clamp(13px,3vw,20px);
+  color: var(--green);
+  text-shadow: 0 0 12px var(--green), 0 0 40px rgba(0,255,136,.4);
+  letter-spacing: 3px;
+  animation: glow 2s ease-in-out infinite alternate;
+  margin-bottom: 8px;
+}
+@keyframes glow{
+  from{text-shadow:0 0 8px var(--green);}
+  to{text-shadow:0 0 24px var(--green),0 0 60px rgba(0,255,136,.5);}
+}
+.header-class {
+  font-size: 8px;
+  color: var(--purple);
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+}
+.header-blink {
+  font-size: 7px;
+  color: var(--blue);
+  animation: blink 1.4s step-end infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── CHAR CARD ── */
+.char-grid {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+}
+@media(max-width:520px){.char-grid{grid-template-columns:1fr;}}
+
+.char-left {
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(160deg,#0d1117,#0a0d14);
+}
+canvas {
+  image-rendering: pixelated;
+  width: 96px;
+  height: 96px;
+}
+.char-name-tag {
+  font-size: 6px;
+  color: var(--green);
+  text-align: center;
+  letter-spacing:1px;
+}
+.char-class-tag {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--blue);
+  text-align: center;
+}
+
+/* XP bar */
+.xp-wrap { width: 100%; }
+.xp-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.xp-head span { font-size: 5px; color: var(--muted); }
+.xp-track {
+  height: 10px;
+  background: #080b10;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.xp-fill {
+  height: 100%;
+  width: 35%;
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  position: relative;
+  animation: barIn 1.8s ease-out;
+}
+.xp-fill::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: repeating-linear-gradient(90deg,transparent,transparent 5px,rgba(255,255,255,.12) 5px,rgba(255,255,255,.12) 6px);
+}
+@keyframes barIn{from{width:0}}
+
+/* ── CHAR RIGHT ── */
+.char-right { padding: 16px; }
+.char-quote {
+  font-family: 'VT323', monospace;
+  font-size: 17px;
+  color: var(--muted);
+  border-left: 2px solid var(--purple);
+  padding-left: 10px;
+  margin-bottom: 14px;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* stat bars */
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.stat-lbl { font-size: 5px; color: var(--muted); width: 76px; flex-shrink:0; }
+.stat-track {
+  flex: 1;
+  height: 10px;
+  background: #080b10;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.stat-fill {
+  height: 100%;
+  animation: barIn 1.8s ease-out;
+  animation-fill-mode: both;
+  position:relative;
+}
+.stat-fill::after{
+  content:'';
+  position:absolute;
+  right:0;top:0;width:2px;height:100%;
+  background:rgba(255,255,255,.6);
+}
+.stat-num { font-size: 5px; color: var(--yellow); width: 28px; text-align: right; }
+
+/* ── QUEST LOG ── */
+.quest {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #1c2128;
+  transition: background .15s;
+}
+.quest:last-child{border-bottom:none;}
+.quest:hover{background:rgba(255,255,255,.02);}
+.q-icon { font-size: 12px; flex-shrink:0; margin-top:2px; }
+.q-icon.done  { color: var(--green); }
+.q-icon.active{ color: var(--yellow); animation: blink .9s step-end infinite; }
+.q-icon.locked{ color: #21262d; }
+.q-title {
+  font-family: 'VT323', monospace;
+  font-size: 17px;
+  color: var(--text);
+  line-height: 1.3;
+}
+.q-reward {
+  font-family: 'VT323', monospace;
+  font-size: 13px;
+  color: var(--purple);
+  margin-top: 3px;
+}
+.q-title.locked-txt, .q-reward.locked-txt { color: #21262d; }
+
+/* ── INVENTORY ── */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(78px,1fr));
+  gap: 8px;
+  padding: 14px;
+}
+.inv-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 10px 4px 8px;
+  text-align: center;
+  cursor: default;
+  position: relative;
+  transition: transform .1s, box-shadow .1s, border-color .1s;
+}
+.inv-item:hover {
+  transform: translateY(-3px);
+  border-color: var(--green);
+  box-shadow: 0 6px 0 rgba(0,255,136,.25);
+}
+.inv-icon { font-size: 22px; display:block; margin-bottom:6px; }
+.inv-name { font-size: 4.5px; color: var(--blue); letter-spacing:.3px; }
+.rarity-dot {
+  position:absolute;
+  top:4px; right:4px;
+  width:5px; height:5px;
+}
+.c1{background:var(--muted);}
+.c2{background:var(--green);}
+.c3{background:var(--blue);}
+.c4{background:var(--purple);}
+
+.inv-legend {
+  padding: 4px 14px 12px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.inv-legend span { font-size: 5px; display:flex; align-items:center; gap:5px; }
+.dot { width:7px; height:7px; display:inline-block; }
+
+/* ── TERMINAL ── */
+.term-line {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--green);
+  padding: 5px 14px;
+  border-bottom: 1px solid #1c2128;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+.term-line:last-child{border-bottom:none;}
+.prompt { color: var(--blue); }
+.out { color: var(--yellow); }
+.dim { color: var(--muted); }
+.cursor {
+  display:inline-block;
+  width:9px; height:15px;
+  background:var(--green);
+  animation: blink .8s step-end infinite;
+  vertical-align:bottom;
+  margin-left:2px;
+}
+
+/* ── BATTLE STATS ── */
+.bstats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap:1px;
+  background: var(--border);
+}
+@media(max-width:460px){.bstats{grid-template-columns:repeat(2,1fr);}}
+.bstat {
+  background: var(--card2);
+  padding: 16px 8px;
+  text-align: center;
+}
+.bstat .big {
+  font-family: 'VT323', monospace;
+  font-size: 30px;
+  color: var(--green);
+  display: block;
+  text-shadow: 0 0 10px var(--green);
+  margin-bottom: 6px;
+}
+.bstat .lbl { font-size: 4.5px; color: var(--muted); letter-spacing:.5px; }
+
+/* ── FOOTER ── */
+.footer {
+  text-align:center;
+  padding: 24px 16px;
+  font-size: 5px;
+  color: #21262d;
+  letter-spacing: 2px;
+  line-height: 2.4;
+}
+.gh-link {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border: 2px solid var(--green);
+  color: var(--green);
+  text-decoration: none;
+  font-size: 6px;
+  letter-spacing: 1px;
+  transition: background .15s, color .15s;
+}
+.gh-link:hover {
+  background: var(--green);
+  color: #000;
+}
+
+/* ── BADGE ROW ── */
+.badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  align-items: center;
+}
+.badge {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  padding: 3px 10px;
+  letter-spacing: .5px;
+}
+.badge-green  { background:#0d3326; color:var(--green);  border:1px solid var(--green);  }
+.badge-blue   { background:#0d2033; color:var(--blue);   border:1px solid var(--blue);   }
+.badge-yellow { background:#2a2000; color:var(--yellow); border:1px solid var(--yellow); }
+.badge-purple { background:#1a0d33; color:var(--purple); border:1px solid var(--purple); }
+
+</style>
+</head>
+<body>
+
+<div id="starfield"></div>
+<div id="ptcl"></div>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-decor">▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓</div>
+    <div class="header-name">⚔&nbsp;&nbsp;3D0HIDAYAT&nbsp;&nbsp;⚔</div>
+    <div class="header-class">[ WEB DEVELOPER EXPLORER ]</div>
+    <div class="badge-row" style="justify-content:center;">
+      <span class="badge badge-green">🌱 STILL LEARNING</span>
+      <span class="badge badge-blue">🚀 STILL GROWING</span>
+      <span class="badge badge-purple">💡 STILL EXPLORING</span>
+    </div>
+    <div class="header-blink">▶ PRESS START TO VIEW PROFILE ◀</div>
+    <div class="header-decor" style="margin-top:10px;">▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓</div>
+  </div>
+
+  <!-- CHARACTER PROFILE -->
+  <div class="box">
+    <div class="box-title">🧙 CHARACTER PROFILE</div>
+    <div class="char-grid">
+
+      <div class="char-left">
+        <canvas id="c" width="48" height="48"></canvas>
+        <div class="char-name-tag">3D0HIDAYAT</div>
+        <div class="char-class-tag">⚔ Web Explorer ⚔</div>
+        <div class="xp-wrap">
+          <div class="xp-head">
+            <span>LV.&nbsp;1</span>
+            <span>XP 350/1000</span>
+          </div>
+          <div class="xp-track"><div class="xp-fill"></div></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+          <span class="badge badge-yellow" style="font-size:11px;">EXPLORER</span>
+          <span class="badge badge-purple" style="font-size:11px;">LEARNER</span>
+        </div>
+      </div>
+
+      <div class="char-right">
+        <div class="char-quote">"Every line of code that finally runs feels like a small victory."</div>
+
+        <div class="stat-row">
+          <div class="stat-lbl">HTML / CSS</div>
+          <div class="stat-track"><div class="stat-fill" style="width:75%;background:linear-gradient(90deg,#e34f26,#ff7043);animation-delay:.0s;"></div></div>
+          <div class="stat-num">75</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-lbl">JAVASCRIPT</div>
+          <div class="stat-track"><div class="stat-fill" style="width:55%;background:linear-gradient(90deg,#f7df1e,#ffcc02);animation-delay:.1s;"></div></div>
+          <div class="stat-num">55</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-lbl">PYTHON</div>
+          <div class="stat-track"><div class="stat-fill" style="width:50%;background:linear-gradient(90deg,#3670a0,#4a90d9);animation-delay:.2s;"></div></div>
+          <div class="stat-num">50</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-lbl">LARAVEL</div>
+          <div class="stat-track"><div class="stat-fill" style="width:40%;background:linear-gradient(90deg,#ff2d20,#ff6b6b);animation-delay:.3s;"></div></div>
+          <div class="stat-num">40</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-lbl">NODE.JS</div>
+          <div class="stat-track"><div class="stat-fill" style="width:35%;background:linear-gradient(90deg,#6da55f,#8bc34a);animation-delay:.4s;"></div></div>
+          <div class="stat-num">35</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-lbl">TAILWIND</div>
+          <div class="stat-track"><div class="stat-fill" style="width:65%;background:linear-gradient(90deg,#38b2ac,#00cfff);animation-delay:.5s;"></div></div>
+          <div class="stat-num">65</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUEST LOG -->
+  <div class="box">
+    <div class="box-title">📜 QUEST LOG — CURRENT JOURNEY</div>
+
+    <div class="quest">
+      <div class="q-icon done">✔</div>
+      <div>
+        <div class="q-title">QUEST: Master the Basics of HTML &amp; CSS</div>
+        <div class="q-reward">+50 XP &nbsp;·&nbsp; REWARD: [ LAYOUT SKILLS UNLOCKED ]</div>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="q-icon done">✔</div>
+      <div>
+        <div class="q-title">QUEST: Build Your First Web Project</div>
+        <div class="q-reward">+80 XP &nbsp;·&nbsp; REWARD: [ BUILDER TITLE UNLOCKED ]</div>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="q-icon done">✔</div>
+      <div>
+        <div class="q-title">QUEST: Learn a Backend Framework (Laravel)</div>
+        <div class="q-reward">+100 XP &nbsp;·&nbsp; REWARD: [ BACKEND APPRENTICE ]</div>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="q-icon active">►</div>
+      <div>
+        <div class="q-title">QUEST: Tame the JavaScript Dragon 🐉</div>
+        <div class="q-reward">+120 XP &nbsp;·&nbsp; REWARD: [ JS WARRIOR ]&nbsp; ← IN PROGRESS</div>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="q-icon active">►</div>
+      <div>
+        <div class="q-title">QUEST: Ship a Real Project to Production</div>
+        <div class="q-reward">+200 XP &nbsp;·&nbsp; REWARD: [ DEVELOPER TITLE ]&nbsp; ← IN PROGRESS</div>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="q-icon locked">🔒</div>
+      <div>
+        <div class="q-title locked-txt">QUEST: ??? Full Stack Mastery ???</div>
+        <div class="q-reward locked-txt">[ LOCKED — KEEP LEVELING UP ]</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="box">
+    <div class="box-title">🎒 INVENTORY — TECH STACK <span style="margin-left:auto;font-size:5px;color:var(--muted);">9 / 20 SLOTS</span></div>
+    <div class="inv-grid">
+      <div class="inv-item"><div class="rarity-dot c2"></div><span class="inv-icon">🔥</span><div class="inv-name">HTML5</div></div>
+      <div class="inv-item"><div class="rarity-dot c2"></div><span class="inv-icon">💎</span><div class="inv-name">CSS3</div></div>
+      <div class="inv-item"><div class="rarity-dot c3"></div><span class="inv-icon">⚡</span><div class="inv-name">JAVASCRIPT</div></div>
+      <div class="inv-item"><div class="rarity-dot c3"></div><span class="inv-icon">🐍</span><div class="inv-name">PYTHON</div></div>
+      <div class="inv-item"><div class="rarity-dot c2"></div><span class="inv-icon">🌊</span><div class="inv-name">TAILWIND</div></div>
+      <div class="inv-item"><div class="rarity-dot c2"></div><span class="inv-icon">🅱️</span><div class="inv-name">BOOTSTRAP</div></div>
+      <div class="inv-item"><div class="rarity-dot c4"></div><span class="inv-icon">🔴</span><div class="inv-name">LARAVEL</div></div>
+      <div class="inv-item"><div class="rarity-dot c3"></div><span class="inv-icon">🟢</span><div class="inv-name">NODE.JS</div></div>
+      <div class="inv-item"><div class="rarity-dot c1"></div><span class="inv-icon">✏️</span><div class="inv-name">SKETCH</div></div>
+    </div>
+    <div class="inv-legend">
+      <span><span class="dot" style="background:var(--muted);"></span>COMMON</span>
+      <span><span class="dot" style="background:var(--green);"></span>UNCOMMON</span>
+      <span><span class="dot" style="background:var(--blue);"></span>RARE</span>
+      <span><span class="dot" style="background:var(--purple);"></span>EPIC</span>
+    </div>
+  </div>
+
+  <!-- TERMINAL -->
+  <div class="box">
+    <div class="box-title">💻 TERMINAL — ./about.sh</div>
+    <div class="term-line"><span class="prompt">$&gt;</span>&nbsp;cat /profile/about.txt</div>
+    <div class="term-line dim">──────────────────────────────────────────</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;Hi! I'm an explorer in the world of web development</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;Not an expert — still learning, still trying, still going</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;Errors = XP.&nbsp; Failures = Tutorials in disguise.</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;Building my foundation, one step at a time</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;Consistency over perfection. Always.</div>
+    <div class="term-line"><span class="out">→</span>&nbsp;The road is long. The grind is real. Let's go. 🚀</div>
+    <div class="term-line dim">──────────────────────────────────────────</div>
+    <div class="term-line"><span class="prompt">$&gt;</span>&nbsp;<span class="cursor"></span></div>
+  </div>
+
+  <!-- BATTLE STATS -->
+  <div class="box">
+    <div class="box-title">⚔ BATTLE STATS — github.com/3d0hidayat</div>
+    <div class="bstats">
+      <div class="bstat"><span class="big">116</span><span class="lbl">CONTRIBUTIONS</span></div>
+      <div class="bstat"><span class="big">124</span><span class="lbl">TOTAL COMMITS</span></div>
+      <div class="bstat"><span class="big">6</span><span class="lbl">REPOSITORIES</span></div>
+      <div class="bstat"><span class="big">7</span><span class="lbl">LONGEST STREAK</span></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░<br>
+    [ GAME IN PROGRESS ]&nbsp;&nbsp;SAVE FILE: 3d0hidayat<br>
+    DIFFICULTY: LEARNING MODE&nbsp;&nbsp;·&nbsp;&nbsp;PLAYTIME: JUST STARTED<br>
+    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    <br><br>
+    <a class="gh-link" href="https://github.com/3d0hidayat" target="_blank">⚔ VIEW GITHUB PROFILE ⚔</a>
+  </div>
+
+</div>
+
+<script>
+// ── STARS ──
+const sf = document.getElementById('starfield');
+for(let i=0;i<100;i++){
+  const s=document.createElement('div');
+  s.className='s';
+  const sz = Math.random()<.15?3:Math.random()<.4?2:1;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*4}s;--delay:${Math.random()*5}s;opacity:.1;`;
+  sf.appendChild(s);
+}
+
+// ── PARTICLES ──
+const pc=document.getElementById('ptcl');
+const cols=['#00ff88','#00cfff','#ffe600','#b86fff','#ff4455'];
+for(let i=0;i<12;i++){
+  const p=document.createElement('div');
+  p.className='px-particle';
+  const sz=(1+Math.floor(Math.random()*2))*2;
+  p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;background:${cols[i%cols.length]};--d:${6+Math.random()*5}s;--delay:${Math.random()*8}s;`;
+  pc.appendChild(p);
+}
+
+// ── PIXEL CHARACTER ──
+const cv=document.getElementById('c');
+const cx=cv.getContext('2d');
+cx.imageSmoothingEnabled=false;
+const G='#00ff88',B='#00cfff',Y='#ffe600',P='#b86fff',S='#f4c48a',D='#1a0a00',R='#ff4455',W='#ffffff';
+const _ = null;
+const px=[
+  [_,_,P,P,P,P,P,_,_,_,_,_,_,_,_,_],
+  [_,P,P,Y,Y,Y,P,P,_,_,_,_,_,_,_,_],
+  [_,P,P,P,P,P,P,P,_,_,_,_,_,_,B,_],
+  [_,_,S,S,S,S,S,_,_,_,_,_,_,B,B,_],
+  [_,_,S,D,S,S,D,S,_,_,_,_,B,B,_,_],
+  [_,_,S,S,S,S,S,S,_,_,_,B,W,_,_,_],
+  [_,G,P,P,P,P,P,P,G,_,_,B,_,_,_,_],
+  [P,P,P,P,P,P,P,P,P,P,_,_,_,_,_,_],
+  [P,R,P,P,P,P,P,P,R,P,_,_,_,_,_,_],
+  [_,P,P,P,P,P,P,P,P,_,_,_,_,_,_,_],
+  [_,_,P,P,_,_,P,P,_,_,_,_,_,_,_,_],
+  [_,_,D,D,_,_,D,D,_,_,_,_,_,_,_,_],
+];
+function draw(phase){
+  cx.clearRect(0,0,48,48);
+  cx.shadowColor='#b86fff';
+  cx.shadowBlur=4+Math.sin(phase)*4;
+  const sc=3;
+  px.forEach((row,y)=>row.forEach((col,x)=>{
+    if(!col)return;
+    cx.fillStyle=col;
+    cx.fillRect(x*sc,y*sc,sc,sc);
+  }));
+  // wand sparkle
+  if(Math.floor(phase*10)%20<10){
+    cx.fillStyle=W;
+    cx.shadowColor=B;
+    cx.shadowBlur=12;
+    cx.fillRect(42,3,3,3);
+  }
+}
+let t=0;
+(function loop(){cx.clearRect(0,0,48,48);draw(t);t+=0.04;requestAnimationFrame(loop);})();
+</script>
+</body>
+</html>
